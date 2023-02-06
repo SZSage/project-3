@@ -6,6 +6,7 @@ from a scrambled string)
 
 import flask
 import logging
+from flask import request
 
 # Our modules
 from src.letterbag import LetterBag
@@ -29,7 +30,7 @@ app.secret_key = CONFIG.SECRET_KEY  # Should allow using session variables
 # or else read it from the file on each request/responce cycle,
 # neither of which would be suitable for responding keystroke by keystroke.
 
-WORDS = Vocab(CONFIG.VOCAB)
+WORDS = Vocab(CONFIG.VOCAB) # reads a list of vocabulary words from a file
 SEED = CONFIG.SEED
 try:
     SEED = int(SEED)
@@ -79,8 +80,8 @@ def success():
 #   a JSON request handler
 #######################
 
-@app.route("/_check", methods=["POST"])
-def check():
+@app.route("/_check", methods=["GET"]) # Changed to GET request
+def check(): 
     """
     User has submitted the form with a word ('attempt')
     that should be formed from the jumble and on the
@@ -92,7 +93,7 @@ def check():
     app.logger.debug("Entering check")
 
     # The data we need, from form and from cookie
-    text = flask.request.form["attempt"]
+    text = request.args.get("text", type=str) # GET TEXT FROM JSON REQUEST
     jumble = flask.session["jumble"]
     matches = flask.session.get("matches", [])  # Default to empty list
 
@@ -100,28 +101,35 @@ def check():
     in_jumble = LetterBag(jumble).contains(text)
     matched = WORDS.has(text)
 
+    result = {"match": False, "count": len(matches)}
+    message = ""
     # Respond appropriately
     if matched and in_jumble and not (text in matches):
         # Cool, they found a new word
         matches.append(text)
         flask.session["matches"] = matches
+        result["match"] = True
+        result["count"] = len(matches)
+
+
     elif text in matches:
-        flask.flash("You already found {}".format(text))
+        message = "You already found {}".format(text)
     elif not matched:
-        flask.flash("{} isn't in the list of words".format(text))
+        # flask.flash("{} isn't in the list of words".format(text))
+        message = "{} isn't in the list of words".format(text)
     elif not in_jumble:
-        flask.flash(
-            '"{}" can\'t be made from the letters {}'.format(text, jumble))
+        message = "{} isn't made from the letters {}".format(text, jumble)
     else:
         app.logger.debug("This case shouldn't happen!")
         assert False  # Raises AssertionError
 
-    # Choose page:  Solved enough, or keep going?
-    if len(matches) >= flask.session["target_count"]:
-       return flask.redirect(flask.url_for("success"))
-    else:
-       return flask.redirect(flask.url_for("keep_going"))
 
+    # Choose page:  Solved enough, or keep going?
+    # if len(matches) >= flask.session["target_count"]: 
+    #     return flask.jsonify(message="Success!")
+    # else:
+    #     return flask.jsonify(message="Keep going!")
+    return flask.jsonify(result=result, message=message)
 
 ###############
 # AJAX request handlers

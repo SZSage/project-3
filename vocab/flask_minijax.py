@@ -15,7 +15,7 @@ import src.config as config
 ###
 app = flask.Flask(__name__)
 
-CONFIG = config.configuration()
+CONFIG = config.configuration() 
 app.secret_key = CONFIG.SECRET_KEY  # Sign my cookies
 
 
@@ -36,6 +36,8 @@ def index():
 
 @app.route("/_countem")
 def countem():
+    # This is the function that is called when the user clicks the button
+    # Handles request from JQuery
     text = request.args.get("text", type=str)
     length = len(text)
     rslt = {"long_enough": length >= 5}
