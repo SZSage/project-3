@@ -23,7 +23,7 @@ app = flask.Flask(__name__)
 CONFIG = config.configuration()
 app.secret_key = CONFIG.SECRET_KEY  # Should allow using session variables
 
-#
+
 # One shared 'Vocab' object, read-only after initialization,
 # shared by all threads and instances.  Otherwise we would have to
 # store it in the browser and transmit it on each request/response cycle,
